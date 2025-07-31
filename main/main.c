@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include "vl53l5cx_api.h"
 
+/**
+ * Main function, the code starts running from here
+ */
 void app_main(void)
 {
     //Define the i2c bus configuration
@@ -75,15 +78,14 @@ void app_main(void)
     vl53l5cx_set_ranging_mode(&Dev, VL53L5CX_RANGING_MODE_CONTINUOUS);
     vl53l5cx_set_sharpener_percent(&Dev, 20);
 
-    
-    /*********************************/
-    /*         Ranging loop          */
-    /*********************************/
-
+    // Starts ranging
     status = vl53l5cx_start_ranging(&Dev);
 
     loop = 0;
     while(loop < 100)
+    /***************************************/
+    /*   Super loop running indefinitely   */
+    /***************************************/
     {
         /* Use polling function to know when a new measurement is ready.
          * Another way can be to wait for HW interrupt raised on PIN A1
@@ -95,9 +97,7 @@ void app_main(void)
         {
             vl53l5cx_get_ranging_data(&Dev, &Results);
 
-            /* As the sensor is set in 4x4 mode by default, we have a total
-             * of 16 zones to print. For this example, only the data of first zone are
-             * print */
+            // The sensor is set in 8x8 mode with a total 64 zones to print.
             printf("Print data no : %3u\n", Dev.streamcount);
             for(int i = 0; i < 64; i+=8)
             {
@@ -120,7 +120,9 @@ void app_main(void)
         WaitMs(&(Dev.platform), 5);
     }
 
+    // It shall never get here, unless an abort condition is implemented on the loop 
+
     // Finish execution
     status = vl53l5cx_stop_ranging(&Dev);
-    printf("End of ULD demo\n");
+    printf("End of execution\n");
 }
