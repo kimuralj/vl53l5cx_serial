@@ -26,7 +26,7 @@ void app_main(void)
     /*   VL53L5CX ranging variables  */
     /*********************************/
 
-    uint8_t 				status, loop, isAlive, isReady;
+    uint8_t 				status, isAlive, isReady;
     VL53L5CX_Configuration 	Dev;			/* Sensor configuration */
     VL53L5CX_ResultsData 	Results;		/* Results data from VL53L5CX */
 
@@ -81,11 +81,10 @@ void app_main(void)
     // Starts ranging
     status = vl53l5cx_start_ranging(&Dev);
 
-    loop = 0;
-    while(loop < 100)
     /***************************************/
     /*   Super loop running indefinitely   */
     /***************************************/
+    while(1)
     {
         /* Use polling function to know when a new measurement is ready.
          * Another way can be to wait for HW interrupt raised on PIN A1
@@ -112,7 +111,6 @@ void app_main(void)
                     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+7)]);
             }
             // printf("\n");
-            // loop++;
         }
 
         /* Wait a few ms to avoid too high polling (function in platform
