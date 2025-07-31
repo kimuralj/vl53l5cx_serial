@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include "vl53l5cx_api.h"
 
-static const char *TAG = "VL53L5CX_Serial";
-
 void app_main(void)
 {
     //Define the i2c bus configuration
