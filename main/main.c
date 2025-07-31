@@ -2,6 +2,13 @@
 #include <string.h>
 #include <stdio.h>
 #include "vl53l5cx_api.h"
+#include "kalman.h"
+
+//! Constant for the initial values of the Kalmann filter
+#define KALMAN_INITIAL_VALUE    300
+
+//! The Kalman filter structs (one per cell in the 8x8 matrix)
+static KALMAN_STRUCT_T kalman[64];
 
 /**
  * Main function, the code starts running from here
@@ -81,6 +88,12 @@ void app_main(void)
     // Starts ranging
     status = vl53l5cx_start_ranging(&Dev);
 
+    // Initializes the Kalman filter array
+    for(int i = 0; i < 64; i++)
+    {
+        Kalman_Initialize(&kalman[i], KALMAN_INITIAL_VALUE);
+    }
+
     /***************************************/
     /*   Super loop running indefinitely   */
     /***************************************/
@@ -100,15 +113,34 @@ void app_main(void)
             printf("Print data no : %3u\n", Dev.streamcount);
             for(int i = 0; i < 64; i+=8)
             {
+                // Variable for holding temporary holding the returned value
+                float filtered_values[8];
+                
+                // Filter all the data from the current row
+                for(int j = 0; j < 8; j++)
+                {
+                    filtered_values[j] = Kalman_Update(&kalman[i+j], Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+j)]);
+                }
+
+                // printf("%d,%d,%d,%d,%d,%d,%d,%d\n",
+                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*i],
+                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+1)],
+                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+2)],
+                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+3)],
+                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+4)],
+                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+5)],
+                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+6)],
+                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+7)]);
+
                 printf("%d,%d,%d,%d,%d,%d,%d,%d\n",
-                    Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*i],
-                    Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+1)],
-                    Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+2)],
-                    Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+3)],
-                    Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+4)],
-                    Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+5)],
-                    Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+6)],
-                    Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+7)]);
+                    (int) filtered_values[0],
+                    (int) filtered_values[1],
+                    (int) filtered_values[2],
+                    (int) filtered_values[3],
+                    (int) filtered_values[4],
+                    (int) filtered_values[5],
+                    (int) filtered_values[6],
+                    (int) filtered_values[7]);
             }
             // printf("\n");
         }
