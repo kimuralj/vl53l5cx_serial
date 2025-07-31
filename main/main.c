@@ -113,8 +113,7 @@ void app_main(void)
             // printf("\n");
         }
 
-        /* Wait a few ms to avoid too high polling (function in platform
-         * file, not in API) */
+        // Wait a few ms to avoid too high polling (function in platform file, not in API)
         WaitMs(&(Dev.platform), 5);
     }
 
