@@ -10,3 +10,5 @@ Two basic things are required for this project to run: a VL53L5CX ToF sensor and
 ### Build and Flash
 
 Enter `idf.py -p PORT flash monitor` to build, flash and monitor the project.
+
+**Note:** It is necessary to increase value of CONFIG_MAIN_TASK_STACK_SIZE, if the system is not behaving as expect, try doubling this value.
