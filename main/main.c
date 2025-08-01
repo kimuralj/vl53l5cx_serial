@@ -4,12 +4,19 @@
 #include "vl53l5cx_api.h"
 #include "kalman.h"
 
+//----------------------- Constants --------------------------/
 //! Constant for the initial values of the Kalmann filter
 #define KALMAN_INITIAL_VALUE    300
+//! Constant for the amount of pixels in the matrix
+#define MATRIX_PIXEL_SIZE       64
+//! Envelope filter value. The maximum allowed distance
+#define ENVELOPE_FILTER_VALUE   300
 
+//----------------------- Variables --------------------------/
 //! The Kalman filter structs (one per cell in the 8x8 matrix)
-static KALMAN_STRUCT_T kalman[64];
+static KALMAN_STRUCT_T kalman[MATRIX_PIXEL_SIZE];
 
+//------------------ Function Definitions --------------------/
 /**
  * Main function, the code starts running from here
  */
@@ -89,7 +96,7 @@ void app_main(void)
     status = vl53l5cx_start_ranging(&Dev);
 
     // Initializes the Kalman filter array
-    for(int i = 0; i < 64; i++)
+    for(int i = 0; i < MATRIX_PIXEL_SIZE; i++)
     {
         Kalman_Initialize(&kalman[i], KALMAN_INITIAL_VALUE);
     }
@@ -111,36 +118,26 @@ void app_main(void)
 
             // The sensor is set in 8x8 mode with a total 64 zones to print.
             printf("Print data no : %3u\n", Dev.streamcount);
-            for(int i = 0; i < 64; i+=8)
+            for(int i = 0; i < MATRIX_PIXEL_SIZE; i++)
             {
-                // Variable for holding temporary holding the returned value
-                float filtered_values[8];
-                
-                // Filter all the data from the current row
-                for(int j = 0; j < 8; j++)
+                // Variable for temporary holding the returned value
+                float filtered_value = Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*i];
+
+                // Apply envelope for filtering extreme outliers
+                if(Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*i] > ENVELOPE_FILTER_VALUE)
                 {
-                    filtered_values[j] = Kalman_Update(&kalman[i+j], Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+j)]);
+                    filtered_value = ENVELOPE_FILTER_VALUE;
                 }
+                
+                // Filter all the data from the current iteration
+                filtered_value = Kalman_Update(&kalman[i], filtered_value);
 
-                // printf("%d,%d,%d,%d,%d,%d,%d,%d\n",
-                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*i],
-                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+1)],
-                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+2)],
-                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+3)],
-                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+4)],
-                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+5)],
-                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+6)],
-                //     Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*(i+7)]);
+                // Serial print the filtered value
+                printf("%d", (int) filtered_value);
 
-                printf("%d,%d,%d,%d,%d,%d,%d,%d\n",
-                    (int) filtered_values[0],
-                    (int) filtered_values[1],
-                    (int) filtered_values[2],
-                    (int) filtered_values[3],
-                    (int) filtered_values[4],
-                    (int) filtered_values[5],
-                    (int) filtered_values[6],
-                    (int) filtered_values[7]);
+                // If the row is over, print "\n", otherwise print the comma separator
+                if(i % 8 == 7) printf("\n");
+                else printf(",");
             }
             // printf("\n");
         }
