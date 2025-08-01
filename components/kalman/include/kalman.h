@@ -9,7 +9,7 @@
  * Variance of the model noise.
  * The value is proportional to how noisier the model is.
  */
-#define Q 0.1
+#define Q 0.5
 /**
  * Variance of the measurement noise.
  * The value is proportional to how noisier the measurement is.
