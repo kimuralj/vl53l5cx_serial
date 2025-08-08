@@ -4,6 +4,12 @@
 #include "vl53l5cx_api.h"
 #include "kalman.h"
 
+//------------------- Compilation Flags ----------------------/
+//! Flag to indicate if it shall use an envelope of values
+#define IS_ENVELOPE_ENABLED     true
+//! Flag to indicate if it shall use the Kalman filter
+#define IS_KALMAN_ENABLED       true
+
 //----------------------- Constants --------------------------/
 //! Constant for the initial values of the Kalmann filter
 #define KALMAN_INITIAL_VALUE    300
@@ -13,8 +19,10 @@
 #define ENVELOPE_FILTER_VALUE   300
 
 //----------------------- Variables --------------------------/
+#if IS_KALMAN_ENABLED
 //! The Kalman filter structs (one per cell in the 8x8 matrix)
 static KALMAN_STRUCT_T kalman[MATRIX_PIXEL_SIZE];
+#endif
 
 //------------------ Function Definitions --------------------/
 /**
@@ -95,11 +103,13 @@ void app_main(void)
     // Starts ranging
     status = vl53l5cx_start_ranging(&Dev);
 
+#if IS_KALMAN_ENABLED
     // Initializes the Kalman filter array
     for(int i = 0; i < MATRIX_PIXEL_SIZE; i++)
     {
         Kalman_Initialize(&kalman[i], KALMAN_INITIAL_VALUE);
     }
+#endif
 
     /***************************************/
     /*   Super loop running indefinitely   */
@@ -123,14 +133,18 @@ void app_main(void)
                 // Variable for temporary holding the returned value
                 float filtered_value = Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*i];
 
+                #if IS_ENVELOPE_ENABLED
                 // Apply envelope for filtering extreme outliers
                 if(Results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE*i] > ENVELOPE_FILTER_VALUE)
                 {
                     filtered_value = ENVELOPE_FILTER_VALUE;
                 }
+                #endif
                 
+                #if IS_KALMAN_ENABLED
                 // Filter all the data from the current iteration
                 filtered_value = Kalman_Update(&kalman[i], filtered_value);
+                #endif
 
                 // Serial print the filtered value
                 printf("%d", (int) filtered_value);
